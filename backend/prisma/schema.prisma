@@ -1,0 +1,431 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  username  String     @unique
+  password  String
+  avatarUrl String?
+  bannerUrl String?
+  bio       String?    @db.VarChar(500)
+  xp        Int        @default(0)
+  level     Int        @default(1)
+  status    UserStatus @default(OFFLINE)
+  theme     String     @default("dark")
+  equippedSkin   String? // ShopItem id
+  equippedFrame  String? // ShopItem id
+  lastLoginAt    DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  refreshTokens   RefreshToken[]
+  achievements    UserAchievement[]
+  tags            UserTag[]
+  givenLikes      ProfileLike[]    @relation("LikeGiver")
+  receivedLikes   ProfileLike[]    @relation("LikeReceiver")
+  givenRatings    ProfileRating[]  @relation("RatingGiver")
+  receivedRatings ProfileRating[]  @relation("RatingReceiver")
+  roomMemberships ChatRoomMember[]
+  messages        Message[]
+  reactions       MessageReaction[]
+  sentRequests     FriendRequest[] @relation("FriendRequester")
+  receivedRequests FriendRequest[] @relation("FriendRequested")
+  friendsA         Friendship[]    @relation("FriendA")
+  friendsB         Friendship[]    @relation("FriendB")
+  inventory       UserInventory[]
+  balance         UserBalance?
+  transactions    Transaction[]
+  xpLogs          XpLog[]
+  contestEntries  ContestEntry[]
+  contestVotes    ContestVote[]
+
+  @@index([username])
+  @@index([level])
+  @@index([xp])
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AFK
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model Achievement {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String
+  icon        String  @default("🏆")
+  xpReward    Int     @default(0)
+  coinsReward Int     @default(0)
+  trigger     String? // e.g. "messages_100", "likes_50"
+  triggerValue Int?   // threshold value for counter triggers
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  earnedAt      DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  type      TagType  @default(FREE)
+  maxCount  Int?
+  createdAt DateTime @default(now())
+
+  users     UserTag[]
+  chatRooms ChatRoomTag[]
+  shopItems ShopItem[]
+  contests  Contest[]
+
+  @@index([name])
+  @@index([type])
+}
+
+enum TagType {
+  FREE
+  ACHIEVEMENT
+  UNIQUE
+  COMPETITIVE
+}
+
+model UserTag {
+  id      String   @id @default(cuid())
+  userId  String
+  tagId   String
+  addedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id])
+
+  @@unique([userId, tagId])
+  @@index([userId])
+  @@index([tagId])
+}
+
+model ProfileLike {
+  id         String   @id @default(cuid())
+  giverId    String
+  receiverId String
+  createdAt  DateTime @default(now())
+
+  giver    User @relation("LikeGiver", fields: [giverId], references: [id], onDelete: Cascade)
+  receiver User @relation("LikeReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([giverId, receiverId])
+  @@index([receiverId])
+}
+
+model ProfileRating {
+  id         String   @id @default(cuid())
+  giverId    String
+  receiverId String
+  score      Int
+  comment    String?  @db.VarChar(300)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  giver    User @relation("RatingGiver", fields: [giverId], references: [id], onDelete: Cascade)
+  receiver User @relation("RatingReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([giverId, receiverId])
+  @@index([receiverId])
+}
+
+// ─── CHAT ────────────────────────────────────────────────────────────────────
+
+enum RoomType {
+  SQUARE
+  GROUP
+  DM
+}
+
+enum MemberRole {
+  ADMIN
+  MOD
+  MEMBER
+}
+
+model ChatRoom {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.VarChar(300)
+  type        RoomType
+  isEphemeral Boolean  @default(false)
+  creatorId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members  ChatRoomMember[]
+  messages Message[]
+  tags     ChatRoomTag[]
+
+  @@index([type])
+}
+
+model ChatRoomTag {
+  id     String @id @default(cuid())
+  roomId String
+  tagId  String
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tag  Tag      @relation(fields: [tagId], references: [id])
+
+  @@unique([roomId, tagId])
+}
+
+model ChatRoomMember {
+  id       String     @id @default(cuid())
+  roomId   String
+  userId   String
+  role     MemberRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+  lastRead DateTime   @default(now())
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@index([roomId])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  SYSTEM
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  roomId    String
+  userId    String
+  content   String      @db.VarChar(4000)
+  type      MessageType @default(TEXT)
+  editedAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime    @default(now())
+
+  room      ChatRoom          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions MessageReaction[]
+
+  @@index([roomId, createdAt])
+  @@index([userId])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String   @db.VarChar(10)
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+// ─── FRIENDS ─────────────────────────────────────────────────────────────────
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model FriendRequest {
+  id          String              @id @default(cuid())
+  requesterId String
+  requestedId String
+  status      FriendRequestStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  requester User @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requested User @relation("FriendRequested", fields: [requestedId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, requestedId])
+  @@index([requestedId])
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userAId   String
+  userBId   String
+  createdAt DateTime @default(now())
+
+  userA User @relation("FriendA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("FriendB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@index([userAId])
+  @@index([userBId])
+}
+
+// ─── GAMIFICATION ────────────────────────────────────────────────────────────
+
+model XpLog {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── SHOP & ECONOMY ──────────────────────────────────────────────────────────
+
+enum ShopItemType {
+  SKIN
+  DECORATION
+  TAG
+  BADGE
+}
+
+model ShopItem {
+  id          String       @id @default(cuid())
+  name        String
+  description String
+  type        ShopItemType
+  price       Int
+  imageUrl    String?
+  data        Json         @default("{}")
+  isActive    Boolean      @default(true)
+  rarity      String       @default("common") // common | rare | epic | legendary
+  createdAt   DateTime     @default(now())
+
+  tagId     String?
+  tag       Tag?           @relation(fields: [tagId], references: [id])
+  inventory UserInventory[]
+}
+
+model UserInventory {
+  id          String   @id @default(cuid())
+  userId      String
+  itemId      String
+  isEquipped  Boolean  @default(false)
+  purchasedAt DateTime @default(now())
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item ShopItem @relation(fields: [itemId], references: [id])
+
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+model UserBalance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  coins     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int
+  type        String   // PURCHASE | GRANT | ACHIEVEMENT | CONTEST_PRIZE | DAILY_LOGIN
+  description String
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── CONTESTS ────────────────────────────────────────────────────────────────
+
+enum ContestStatus {
+  PENDING
+  ACTIVE
+  FINISHED
+}
+
+model Contest {
+  id          String        @id @default(cuid())
+  title       String
+  description String?       @db.VarChar(500)
+  startAt     DateTime
+  endAt       DateTime
+  status      ContestStatus @default(PENDING)
+  maxWinners  Int           @default(1)
+  prizeXp     Int           @default(200)
+  prizeCoins  Int           @default(100)
+  prizeTagId  String?
+  createdBy   String
+  createdAt   DateTime      @default(now())
+
+  prizeTag Tag?           @relation(fields: [prizeTagId], references: [id])
+  entries  ContestEntry[]
+
+  @@index([status])
+  @@index([endAt])
+}
+
+model ContestEntry {
+  id        String   @id @default(cuid())
+  contestId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  contest Contest       @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes   ContestVote[]
+
+  @@unique([contestId, userId])
+  @@index([contestId])
+}
+
+model ContestVote {
+  id        String   @id @default(cuid())
+  entryId   String
+  voterId   String
+  contestId String
+  createdAt DateTime @default(now())
+
+  entry ContestEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  voter User         @relation(fields: [voterId], references: [id], onDelete: Cascade)
+
+  @@unique([contestId, voterId])
+  @@index([entryId])
+}

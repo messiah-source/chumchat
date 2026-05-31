@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Dark theme defaults */
+  .dark body {
+    @apply bg-cyber-bg-outer text-cyber-text;
+  }
+
+  /* Light theme */
+  .light body {
+    background-color: #3a5580;
+    color: #1a2a3a;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #1e3a5f;
+    border-radius: 2px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #243f5c;
+  }
+
+  .light ::-webkit-scrollbar-thumb {
+    background: #a0b4c8;
+    border-radius: 2px;
+  }
+
+  /* Pixel image rendering for logo */
+  .pixel {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+}
+
+@layer utilities {
+  .font-mono { font-family: 'JetBrains Mono', 'IBM Plex Mono', Consolas, monospace; }
+  .font-sans { font-family: 'DM Sans', system-ui, sans-serif; }
+
+  /* CRT scanline overlay effect */
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Cyberpunk border glow */
+  .border-glow-cyan {
+    box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.3), 0 0 8px rgba(0, 212, 255, 0.1);
+  }
+
+  .border-glow-red {
+    box-shadow: 0 0 0 1px rgba(255, 56, 79, 0.3), 0 0 8px rgba(255, 56, 79, 0.1);
+  }
+}
+
+/* Marquee animation */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  animation: marquee 40s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Blink cursor */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Light theme panel overrides */
+.light .dark\:bg-cyber-panel { background-color: #e8edf2; }
+.light .dark\:bg-cyber-panel-2 { background-color: #f0f4f8; }
+.light .dark\:bg-cyber-panel-3 { background-color: #dce5ef; }
+.light .dark\:bg-cyber-bg-outer { background-color: #3a5580; }
+.light .dark\:bg-cyber-bg-deep { background-color: #2d4a6a; }
+.light .dark\:border-cyber-border { border-color: #a0b4c8; }
+.light .dark\:text-cyber-text { color: #1a2a3a; }
+.light .dark\:text-cyber-text-dim { color: #3a5a7a; }
+.light .dark\:text-cyber-text-muted { color: #5a7a9a; }

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+uploads/avatars/*.jpg
+uploads/avatars/*.png
+uploads/avatars/*.webp
+uploads/banners/*.jpg
+uploads/banners/*.png
+uploads/banners/*.webp
+.DS_Store
