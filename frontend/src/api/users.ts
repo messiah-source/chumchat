@@ -16,17 +16,13 @@ export const usersApi = {
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append('file', file);
-    return api.post<{ avatarUrl: string }>('/users/me/avatar', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data);
+    return api.post<{ avatarUrl: string }>('/users/me/avatar', form).then((r) => r.data);
   },
 
   uploadBanner: (file: File) => {
     const form = new FormData();
     form.append('file', file);
-    return api.post<{ bannerUrl: string }>('/users/me/banner', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data);
+    return api.post<{ bannerUrl: string }>('/users/me/banner', form).then((r) => r.data);
   },
 
   toggleLike: (userId: string) =>

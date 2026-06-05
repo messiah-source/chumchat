@@ -32,8 +32,8 @@ export default function Profile() {
   const likeMutation = useToggleLike(profile?.id ?? '', username ?? '');
   const rateMutation = useRateProfile(profile?.id ?? '', username ?? '');
   const updateMutation = useUpdateProfile();
-  const avatarMutation = useUploadAvatar();
-  const bannerMutation = useUploadBanner();
+  const avatarMutation = useUploadAvatar(username ?? '');
+  const bannerMutation = useUploadBanner(username ?? '');
   const addTagMutation = useAddTag(username ?? '');
   const removeTagMutation = useRemoveTag(username ?? '');
 

@@ -47,12 +47,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })),
 
   addMessage: (msg) =>
-    set((s) => ({
-      messages: {
-        ...s.messages,
-        [msg.roomId]: [...(s.messages[msg.roomId] ?? []), msg],
-      },
-    })),
+    set((s) => {
+      const existing = s.messages[msg.roomId] ?? [];
+      if (existing.some((m) => m.id === msg.id)) return s;
+      return {
+        messages: {
+          ...s.messages,
+          [msg.roomId]: [...existing, msg],
+        },
+      };
+    }),
 
   updateMessage: (msg) =>
     set((s) => ({

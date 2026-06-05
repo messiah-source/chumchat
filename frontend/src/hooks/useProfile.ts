@@ -54,18 +54,24 @@ export function useUpdateProfile() {
   });
 }
 
-export function useUploadAvatar() {
+export function useUploadAvatar(username?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: usersApi.uploadAvatar,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+      if (username) qc.invalidateQueries({ queryKey: ['profile', username] });
+    },
   });
 }
 
-export function useUploadBanner() {
+export function useUploadBanner(username?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: usersApi.uploadBanner,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+      if (username) qc.invalidateQueries({ queryKey: ['profile', username] });
+    },
   });
 }

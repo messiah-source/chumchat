@@ -56,10 +56,10 @@ export default function Chat() {
   const { mutate: logout } = useLogout();
   const { joinRoom, setStatus } = useSocket();
 
-  const { activeRoomId, setActiveRoom, typing } = useChatStore();
+  const { activeRoomId, setActiveRoom, typing, onlineUsers } = useChatStore();
   const { data: squares = [] } = useSquares();
   const { data: myRooms = [] } = useMyRooms();
-  const { messages, fetchOlder } = useRoomMessages(activeRoomId);
+  const { messages, fetchOlder, isLoading: messagesLoading } = useRoomMessages(activeRoomId);
   const { mutate: joinRoomMutation, isPending: joining } = useJoinRoom();
 
   const [tab, setTab] = useState<Tab>('squares');
@@ -348,9 +348,13 @@ export default function Chat() {
                 <p className="text-sm">Выбери площадь или группу слева</p>
               </div>
             </div>
-          ) : messages.length === 0 ? (
+          ) : messagesLoading ? (
             <div className="flex items-center justify-center h-full">
               <p className="font-mono text-xs text-cyber-text-muted animate-pulse">загрузка сообщений...</p>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="font-mono text-xs text-cyber-text-muted">Нет сообщений. Напиши первым!</p>
             </div>
           ) : (
             <>
@@ -393,7 +397,7 @@ export default function Chat() {
           <div className="flex items-center gap-1">
             <span className="font-mono text-xs text-cyber-cyan animate-blink">◈</span>
             <span className="font-mono text-xs text-cyber-text-muted">
-              {displayUser?.status ? displayUser.status.toLowerCase() : 'offline'}
+              {(authUser?.id ? onlineUsers[authUser.id] : displayUser?.status)?.toLowerCase() ?? 'offline'}
             </span>
           </div>
           <div className="flex items-center gap-1">

@@ -90,15 +90,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('join_room')
   async handleJoin(@ConnectedSocket() socket: AuthSocket, @MessageBody() data: { roomId: string }) {
     const { userId, username } = socket.data;
+    const wasAlreadyInRoom = socket.rooms.has(`room:${data.roomId}`);
     await this.roomsService.joinRoom(userId, data.roomId);
     socket.join(`room:${data.roomId}`);
 
-    const sysMsg = await this.messagesService.createMessage(data.roomId, userId, {
-      content: `${username} вошёл в чат`,
-      type: 'SYSTEM',
-    });
+    if (!wasAlreadyInRoom) {
+      const sysMsg = await this.messagesService.createMessage(data.roomId, userId, {
+        content: `${username} вошёл в чат`,
+        type: 'SYSTEM',
+      });
+      this.server.to(`room:${data.roomId}`).emit('new_message', sysMsg);
+    }
 
-    this.server.to(`room:${data.roomId}`).emit('new_message', sysMsg);
     await this.roomsService.updateLastRead(userId, data.roomId);
     return { ok: true };
   }

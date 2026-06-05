@@ -97,7 +97,7 @@ export class ShopService {
     });
 
     // Unequip old
-    if ((currentEquipped as Record<string, string | null>)[field]) {
+    if ((currentEquipped as any)?.[field]) {
       await this.prisma.userInventory.updateMany({
         where: { userId, item: { type: dto.slot === 'skin' ? 'SKIN' : 'DECORATION' } },
         data: { isEquipped: false },

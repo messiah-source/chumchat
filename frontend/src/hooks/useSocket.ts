@@ -5,6 +5,7 @@ import { useChatStore } from '../store/chatStore';
 import type { ChatMessage } from '../api/chat';
 
 let socket: Socket | null = null;
+let socketInitialized = false;
 
 export function useSocket() {
   const { accessToken, isAuthenticated } = useAuthStore();
@@ -16,11 +17,10 @@ export function useSocket() {
     setTyping,
     setUserStatus,
   } = useChatStore();
-  const initialized = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken || initialized.current) return;
-    initialized.current = true;
+    if (!isAuthenticated || !accessToken || socketInitialized) return;
+    socketInitialized = true;
 
     socket = io('/chat', {
       auth: { token: accessToken },
@@ -44,9 +44,11 @@ export function useSocket() {
     );
 
     return () => {
-      socket?.disconnect();
-      socket = null;
-      initialized.current = false;
+      if (!isAuthenticated) {
+        socket?.disconnect();
+        socket = null;
+        socketInitialized = false;
+      }
     };
   }, [isAuthenticated, accessToken]);
 
